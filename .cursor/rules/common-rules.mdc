@@ -1,0 +1,122 @@
+---
+description: 
+alwaysApply: true
+---
+
+RAG_BASE = remote knowledge base split by storages and accessed by Pinecone_Vector_Store_<name> tool from n8n-vibebot MCP server
+LOCAL_BASE = local knowledge base accessed in @Assets\Docs\RAG folder and used if RAG_BASE is not available
+
+# PROJECT SNAPSHOT (treat as known; don’t rediscover)
+- Engine: Unity 6 (currently `6000.3.8f1`), URP
+- Language: C#
+- Architecture: Clean Architecture; contexts Application/Gameplay; modular SubEpic features; asmdefs enforce boundaries
+- DI: VContainer (LifetimeScope-based)
+- Messaging: MessagePipe + DTOs; subscriptions via CompositeDisposable and disposed in Dispose()
+- Async: UniTask
+- Reactivity: R3
+- UI: UGUI, MVVC
+- Key roots:
+  - Unity version: `ProjectSettings/ProjectVersion.txt`
+  - Packages: `Packages/manifest.json`
+  - Code: `Assets/_VFXProject/Scripts/(Domain|UseCases|Presentation|Infrastructure|Repositories|ContractsInterfaces)`
+  - Local standards: `Assets/Docs/RAG`
+
+# DISCOVERY POLICY (avoid “grep to identify stack”)
+- Do NOT run repo-wide search just to infer engine/stack.
+- Treat the Project Snapshot as canonical.
+- If validation is required, read ONLY:
+  - `ProjectSettings/ProjectVersion.txt`
+  - `Packages/manifest.json`
+- Expand to broader search only when the user task truly requires it (e.g., locating usages/refactors).
+
+# STARTUP / COMMUNICATION
+- Start by addressing the user request; do not preface with “I’ll explore/grep to determine the project/engine”.
+- Use minimal targeted file reads; avoid broad context-gathering unless blocked.
+
+# PRIMARY RULES (strict enforcement)
+
+## TASK COMPLEXITY TIERS
+Determine tier before acting:
+- **Tier 1 (no RAG):** typos, formatting, direct edits with full user-provided context, general programming questions, follow-ups in ongoing conversation
+- **Tier 2 (RAG if uncertain):** feature implementation, refactoring existing code, debugging project-specific issues
+- **Tier 3 (RAG required):** architecture decisions, new modules/components, cross-module work, project conventions questions
+
+## HARD GATE: Tier/RAG preflight (mandatory)
+Before ANY repo-wide discovery (e.g., broad `Glob`/`Grep`/`LS`) intended to figure out “where/how” something works:
+- Write **Tier (1/2/3)** + 1-line reason
+- Choose knowledge source:
+  - Tier 3: query `RAG_BASE` once (5s). If unavailable/fails/permission denied, treat it as unavailable for the rest of the conversation and use `LOCAL_BASE`.
+  - Tier 2: query `RAG_BASE` only if uncertain / insufficient context; otherwise proceed with minimal targeted reads.
+  - Tier 1: no RAG
+- Only then proceed to code reads/search (start from known entrypoints; avoid broad scans unless blocked)
+
+If you realize you started discovery without this preflight:
+- Stop immediately
+- Briefly acknowledge the violation
+- Restart from the preflight
+
+## RAG QUERY RULES
+1. Query RAG_BASE only when:
+   - Task is Tier 3 OR Tier 2 with insufficient context
+   - User explicitly asks about project standards/conventions
+   - Creating new components or modifying architecture
+   - First message lacks sufficient context for project-specific work
+2. If RAG tool is unavailable (missing/permission error) OR a RAG query fails: treat RAG as unavailable for the rest of the conversation and use LOCAL_BASE directly (not as sequential fallback)
+3. Timeout: 5s for RAG queries (do not retry on failure)
+
+## SKIP RAG WHEN USER PROVIDES:
+- Direct file references with line numbers
+- Complete code snippets with clear instructions
+- Explicit "just do X" phrasing
+- Sufficient context in the prompt itself
+
+## SESSION CONTEXT
+- Context gathered in conversation persists; don't re-query for same info
+- For follow-up messages: use already-gathered context unless scope changes significantly
+
+## PLATFORM TOOLS
+- Use connected tools for platform tasks (Figma/GitHub/Jira) when applicable.
+- **Jira links**: use ONLY the provided MCP browser tools to open/read Jira pages. Do NOT use generic web fetch/search unless the user explicitly asks otherwise.
+- If MCP access is unavailable/fails, pause and ask the user before using any non-MCP fallback (e.g., `WebFetch`, `WebSearch`, or “paste ticket contents here”).
+- When given multiple Jira links, validate access on ONE issue first before batching/parallelizing the rest.
+- When batching/parallelizing tool calls, double-check the tool identifier strings are correct (e.g., `functions.<ToolName>` exactly once).
+
+## PRIORITY ORDER
+1. User explicit instructions
+2. Safety/security concerns
+3. Task tier assessment (skip unnecessary lookups)
+4. RAG/LOCAL_BASE rules (when applicable per tier)
+5. Technical approach guidelines
+6. Collaboration patterns
+
+## VALIDATION REQUIRED
+- When deviating from primary rules: get explicit confirmation
+- For major architectural changes: suggest review
+- When uncertain: offer multiple approaches with trade-offs
+
+# SECONDARY GUIDELINES (advisory)
+
+## Technical approach
+1. Lead with working code or the direct answer
+2. For fixes: show minimal complete changes with context lines
+3. For PR reviews: check functionality, performance, security, and maintainability
+4. For planning: include complexity estimates and migration considerations
+5. Flag speculation, edge cases, and alternative approaches clearly
+
+## Collaboration rules
+- Ask clarifying questions if requirements are ambiguous
+- Share thoughts on concerns
+- Reference specific files/functions when possible
+- Iterate on solutions based on feedback
+- Split long responses naturally
+- Cite sources for non-obvious solutions at the end
+- Use English for communication until user explicitly requests otherwise
+
+## Boundaries
+- No moralizing or obvious safety disclaimers
+- If content policy blocks, explain what's possible
+- No AI/date disclosures
+- Value technical merit over popularity
+- Don't speculate on unavailable systems' state
+- If blocked: suggest workarounds, not just limitations
+- Technical merit includes maintainability, not just cleverness
